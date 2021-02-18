@@ -8,6 +8,8 @@ import json
 from requests import Session, Request
 from requests_toolbelt import SSLAdapter
 
+from jwt import JWT
+
 # workaround to suppress InsecureRequestWarning
 # See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
 import urllib3
@@ -75,13 +77,25 @@ class Controller(object):
             self.connect()
 
         if endpoint == 'login':
-            url = '{}/api/{}'.format(self._baseurl, endpoint)
+            url = '{}/api/auth/{}'.format(self._baseurl, endpoint)
         else:
-            url = '{}/api/s/{}/{}'.format(
+            url = '{}/proxy/network/api/s/{}/{}'.format(
                 self._baseurl,
                 self.site,
                 endpoint
             )
+
+        headers = {
+            'Content-type': 'application/json',
+        }
+        try:
+            # read csrf token from cookie TOKEN, adding as header to next request
+            token = self._session.cookies.get("TOKEN")
+            jwt_instance = JWT()
+            jwt_payload = jwt_instance.decode(token, key=None, do_verify=False, algorithms=None, do_time_check=False)
+            headers['x-csrf-token'] = jwt_payload['csrfToken']
+        except Exception as ex:
+            pass
         
         return self._jsondec(
             self._session.send(
@@ -90,9 +104,7 @@ class Controller(object):
                         method,
                         url,
                         data=json.dumps(data).encode('utf8'),
-                        headers={
-                            'Content-type': 'application/json'
-                        }
+                        headers=headers
                     )                    
                 ),
                 verify=False

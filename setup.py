@@ -16,6 +16,7 @@ setuptools.setup(
     url='https://github.com/fgbs/unifi',
     packages=setuptools.find_packages(),
     install_requires=[
+        'jwt',
         'requests',
         'requests-toolbelt'
     ],
